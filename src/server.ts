@@ -1,4 +1,4 @@
-import express, {Request,Response} from 'express';
+import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import fs from 'fs';
 import path from 'path';
@@ -25,7 +25,6 @@ const readFromDb = (): Submission[] => {
     return [];
 };
 
-
 const writeToDb = (data: Submission[]) => {
     fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 };
@@ -47,6 +46,34 @@ app.post('/submit', (req, res) => {
 app.get('/read', (req, res) => {
     const data = readFromDb();
     res.json(data);
+});
+
+app.put('/update', (req: Request, res: Response) => {
+    const { index, submission } = req.body;
+
+    if (typeof index !== 'number' || index < 0 || index >= submissions.length) {
+        res.status(400).send('Invalid index');
+        return;
+    }
+
+    const existingSubmission = submissions[index];
+    const updatedSubmission = { ...existingSubmission, ...submission };
+
+    submissions[index] = updatedSubmission;
+    writeToDb(submissions);
+    console.log("Updated Record: ", updatedSubmission)
+    res.json({ status: 'Update successful', updatedSubmission });
+});
+
+app.delete('/delete', (req, res) => {
+    const index: number = req.body.index;
+    if (index >= 0 && index < submissions.length) {
+        const deletedSubmission = submissions.splice(index, 1)[0];
+        writeToDb(submissions);
+        console.log('Deleted Submission:', deletedSubmission);
+    } else {
+        res.status(400).send('Invalid index');
+    }
 });
 
 app.listen(port, () => {
